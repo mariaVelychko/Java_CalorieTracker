@@ -9,7 +9,7 @@ public class Main {
 
         try {
             int count = readInt(scanner, "Скільки порцій занести в щоденник? ");
-            fillLog(scanner, log, count);git add .
+            fillLog(scanner, log, count);
             printReport(log);
         } catch (ArithmeticException e) {
             System.out.println("Помилка обчислення: у щоденнику немає жодної порції, "
