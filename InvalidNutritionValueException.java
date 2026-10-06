@@ -1,3 +1,6 @@
+/**
+ * Числове значення (вага, калорійність, білок) виходить за допустимі межі.
+ */
 public class InvalidNutritionValueException extends DomainException {
     private final String fieldName;
     private final double min;

@@ -1,14 +1,18 @@
 import java.util.List;
 import java.util.Locale;
 
-public class Product {
+/**
+ * Сутність «Продукт» — спожита порція їжі. Дані валідуються в конструкторі.
+ * Реалізує два незалежні інтерфейси: Comparable (сортування за калорійністю)
+ * і Reportable (власний формат рядка звіту).
+ */
+public class Product implements Comparable<Product>, Reportable {
     public static final List<String> MEAL_TYPES = List.of("сніданок", "обід", "вечеря", "перекус");
 
     private static final int MIN_WEIGHT_GRAMS = 1;
     private static final int MAX_WEIGHT_GRAMS = 5000;
-    private static final double MAX_CALORIES_PER_100G = 900.0;
+    private static final double MAX_CALORIES_PER_100G = 900.0; // жир ≈ 900 ккал/100 г
     private static final double MAX_PROTEIN_PER_100G = 100.0;
-    private static final double MEAL_LIMIT = 700.0;
 
     private final String productName;
     private final int weightGrams;
@@ -34,6 +38,7 @@ public class Product {
 
     private static void checkRange(String field, double value, double min, double max)
             throws InvalidNutritionValueException {
+        // запис через !(...) також відсікає NaN
         if (!(value >= min && value <= max)) {
             throw new InvalidNutritionValueException(field, value, min, max);
         }
@@ -55,14 +60,17 @@ public class Product {
         return proteinPer100g * weightGrams / 100.0;
     }
 
-    public String getComment() {
-        double total = getTotalCalories();
-        if (total > MEAL_LIMIT) {
-            return "Це калорійний прийом їжі — варто врахувати це у денному раціоні.";
-        } else if (total > MEAL_LIMIT / 2) {
-            return "Помірна калорійність прийому їжі.";
-        }
-        return "Легкий прийом їжі за калорійністю.";
+    /** Сортування за спаданням/зростанням калорійності порції (інтерфейс Comparable). */
+    @Override
+    public int compareTo(Product other) {
+        return Double.compare(this.getTotalCalories(), other.getTotalCalories());
+    }
+
+    /** Рядок для звіту (інтерфейс Reportable). */
+    @Override
+    public String toReportLine() {
+        return String.format("%s (%s) — %.2f ккал, %.2f г білка",
+                productName, mealType, getTotalCalories(), getTotalProtein());
     }
 
     public String getProductName() {
