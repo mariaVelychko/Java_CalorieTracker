@@ -1,6 +1,3 @@
-/**
- * Оцінка порції за калорійністю. Успадковує спільне форматування від AbstractAdviceStrategy.
- */
 public class CalorieAdviceStrategy extends AbstractAdviceStrategy {
     private static final double LIGHT_LIMIT = 350.0;
     private static final double HEAVY_LIMIT = 700.0;

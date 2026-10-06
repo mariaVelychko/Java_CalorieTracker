@@ -1,6 +1,3 @@
-/**
- * Оцінка порції за вмістом білка. Перевизначає default-метод shortLabel().
- */
 public class ProteinAdviceStrategy extends AbstractAdviceStrategy {
     private static final double HIGH_PROTEIN = 30.0;
     private static final double LOW_PROTEIN = 15.0;

@@ -1,7 +1,3 @@
-/**
- * Контекстний клас патерну Strategy. Приймає стратегію через конструктор
- * і дозволяє замінити її через setStrategy() під час виконання програми.
- */
 public class MealAdviser {
     private MealAdviceStrategy strategy;
 
