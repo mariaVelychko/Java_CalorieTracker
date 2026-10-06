@@ -1,105 +1,129 @@
+import java.util.InputMismatchException;
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 public class Main {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
+        MealLog log = new MealLog();
 
-        System.out.print("Скільки продуктів ви хочете внести? ");
-        int n = scanner.nextInt();
-        scanner.nextLine(); 
-
-        Product[] products = new Product[n];
-
-        for (int i = 0; i < n; i++) {
-            System.out.println("\n--- Продукт #" + (i + 1) + " ---");
-
-            System.out.print("Назва продукту: ");
-            String name = scanner.nextLine();
-
-            System.out.print("Вага порції (г): ");
-            int weight = scanner.nextInt();
-
-            System.out.print("Калорійність на 100г (ккал): ");
-            double calories = scanner.nextDouble();
-
-            System.out.print("Білок на 100г (г): ");
-            double protein = scanner.nextDouble();
-            scanner.nextLine();
-
-            products[i] = new Product(name, weight, calories, protein);
+        try {
+            int count = readInt(scanner, "Скільки порцій занести в щоденник? ");
+            fillLog(scanner, log, count);
+            printReport(log);
+        } catch (ArithmeticException e) {
+            System.out.println("Помилка обчислення: у щоденнику немає жодної порції, "
+                    + "середню калорійність порахувати неможливо (" + e.getMessage() + ").");
+        } catch (NoSuchElementException e) {
+            System.out.println("Введення перервано: дані закінчилися раніше, ніж очікувалось.");
+        } catch (Exception e) {
+            System.out.println("Непередбачена помилка: " + e);
+        } finally {
+            scanner.close();
+            System.out.println("Роботу програми завершено, Scanner закрито.");
         }
 
-        System.out.println("\n===== Усі внесені продукти =====");
-        for (Product p : products) {
-            System.out.println(p);
-        }
-
-        System.out.print("\nВведіть межу калорійності (ккал/100г) для підрахунку: ");
-        double limit = scanner.nextDouble();
-        scanner.nextLine();
-
-        int countAboveLimit = 0;
-        for (Product p : products) {
-            if (p.getCaloriesPer100g() > limit) {
-                countAboveLimit++;
-            }
-        }
-        System.out.printf("Продуктів з калорійністю понад %.2f ккал/100г: %d%n", limit, countAboveLimit);
-
-        System.out.println("\n===== До сортування (за калорійністю на 100г) =====");
-        for (Product p : products) {
-            System.out.println(p);
-        }
-
-        bubbleSortByCalories(products);
-
-        System.out.println("\n===== Після сортування (за зростанням калорійності на 100г) =====");
-        for (Product p : products) {
-            System.out.println(p);
-        }
-
-        System.out.println("\n===== Пошук продукту в масиві =====");
-        System.out.print("Назва продукту для пошуку: ");
-        String searchName = scanner.nextLine();
-        System.out.print("Вага порції (г): ");
-        int searchWeight = scanner.nextInt();
-        System.out.print("Калорійність на 100г (ккал): ");
-        double searchCalories = scanner.nextDouble();
-        System.out.print("Білок на 100г (г): ");
-        double searchProtein = scanner.nextDouble();
-
-        Product sample = new Product(searchName, searchWeight, searchCalories, searchProtein);
-        int index = linearSearch(products, sample);
-
-        if (index != -1) {
-            System.out.println("Знайдено! Індекс у масиві: " + index);
-            System.out.println(products[index]);
-        } else {
-            System.out.println("Такого продукту в масиві немає.");
-        }
-
-        scanner.close();
+        demoHierarchy();
     }
 
-    private static void bubbleSortByCalories(Product[] products) {
-        int n = products.length;
-        for (int i = 0; i < n - 1; i++) {
-            for (int j = 0; j < n - 1 - i; j++) {
-                if (products[j].getCaloriesPer100g() > products[j + 1].getCaloriesPer100g()) {
-                    Product temp = products[j];
-                    products[j] = products[j + 1];
-                    products[j + 1] = temp;
+    private static void fillLog(Scanner scanner, MealLog log, int count) {
+        int entered = 0;
+        while (entered < count) {
+            System.out.println("\n--- Порція " + (entered + 1) + " з " + count + " ---");
+            try {
+                addMealFromInput(scanner, log);
+                entered++;
+            } catch (InvalidMealTypeException e) {             
+                System.out.println("Помилка: " + e.getMessage() + ". Допустимі значення: "
+                        + String.join(", ", e.getAllowedTypes()) + ". Введіть порцію ще раз.");
+            } catch (InvalidNutritionValueException e) {      
+                System.out.println("Помилка: " + e.getMessage() + " (введено: "
+                        + e.getInvalidValue() + "). Введіть порцію ще раз.");
+            } catch (DomainException e) {                     
+                System.out.println("Помилка даних: " + e.getMessage() + ". Введіть порцію ще раз.");
+            } catch (ArrayIndexOutOfBoundsException e) {      
+                System.out.println("Щоденник заповнений (максимум " + MealLog.CAPACITY
+                        + " записів). Решту порцій не збережено. [" + e.getMessage() + "]");
+                break;
+            }
+        }
+    }
+
+    private static void addMealFromInput(Scanner scanner, MealLog log) throws DomainException {
+        System.out.print("Введіть назву продукту: ");
+        String productName = scanner.nextLine();
+
+        int weightGrams = readInt(scanner, "Введіть вагу спожитої порції (г): ");
+        double caloriesPer100g = readDouble(scanner, "Введіть калорійність продукту на 100 г (ккал): ");
+        double proteinPer100g = readDouble(scanner, "Введіть вміст білка на 100 г (г): ");
+
+        System.out.print("Введіть прийом їжі (сніданок/обід/вечеря/перекус): ");
+        String mealType = scanner.nextLine();
+
+        Product product = log.addMeal(productName, weightGrams, caloriesPer100g, proteinPer100g, mealType);
+
+        System.out.println();
+        System.out.println("===== Результат обліку =====");
+        System.out.printf("Продукт: %s%n", product.getProductName());
+        System.out.printf("Прийом їжі: %s%n", product.getMealType());
+        System.out.printf("Вага порції: %d г%n", product.getWeightGrams());
+        System.out.printf("Отримано калорій: %.2f ккал%n", product.getTotalCalories());
+        System.out.printf("Отримано білка: %.2f г%n", product.getTotalProtein());
+        System.out.printf("Висновок: %s%n", product.getComment());
+    }
+
+    private static void printReport(MealLog log) {
+        System.out.println("\n===== Підсумок щоденника =====");
+        for (int i = 0; i < log.getSize(); i++) {
+            Product p = log.getMeal(i);
+            System.out.printf("%d) %s (%s) — %.2f ккал%n",
+                    i + 1, p.getProductName(), p.getMealType(), p.getTotalCalories());
+        }
+        System.out.printf("Всього: %.2f ккал%n", log.totalCalories());
+        System.out.printf("Середня калорійність порції: %d ккал%n", log.averageCalories());
+    }
+
+    private static int readInt(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                int value = scanner.nextInt();
+                scanner.nextLine(); 
+                return value;
+            } catch (InputMismatchException e) {
+                String bad = scanner.nextLine();
+                System.out.println("Помилка: очікується ціле число, а введено \"" + bad + "\". Спробуйте ще раз.");
+            }
+        }
+    }
+
+    private static double readDouble(Scanner scanner, String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                double value = scanner.nextDouble();
+                scanner.nextLine();
+                return value;
+            } catch (InputMismatchException e) {
+                String bad = scanner.nextLine();
+                System.out.println("Помилка: очікується число, а введено \"" + bad
+                        + "\". Перевірте роздільник дробової частини (кома або крапка залежно від локалі).");
+            }
+        }
+    }
+    
+    private static void demoHierarchy() {
+        System.out.println("\n===== Демо: catch базового класу DomainException =====");
+        for (int i = 0; i < 2; i++) {
+            try {
+                if (i == 0) {
+                    new Product("Тест", -5, 100, 10, "обід");         // InvalidNutritionValueException
+                } else {
+                    new Product("Тест", 100, 100, 10, "полуденок");   // InvalidMealTypeException
                 }
+            } catch (DomainException e) {
+                System.out.println(e.getClass().getSimpleName() + " -> " + e.getMessage());
             }
         }
-    }
-
-    private static int linearSearch(Product[] products, Product sample) {
-        for (int i = 0; i < products.length; i++) {
-            if (products[i].equals(sample)) {
-                return i;
-            }
-        }
-        return -1;
     }
 }
