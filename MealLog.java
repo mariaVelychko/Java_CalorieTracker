@@ -14,7 +14,7 @@ public class MealLog {
                     + "), некоректне значення: " + e.getInvalidValue());
             throw e; // re-throw
         }
-        meals[size] = product;
+        meals[size] = product; 
         size++;
         return product;
     }

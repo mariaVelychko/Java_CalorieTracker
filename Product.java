@@ -1,14 +1,13 @@
 import java.util.List;
 import java.util.Locale;
 
-public class Product {
+public class Product implements Comparable<Product>, Reportable {
     public static final List<String> MEAL_TYPES = List.of("сніданок", "обід", "вечеря", "перекус");
 
     private static final int MIN_WEIGHT_GRAMS = 1;
     private static final int MAX_WEIGHT_GRAMS = 5000;
-    private static final double MAX_CALORIES_PER_100G = 900.0;
+    private static final double MAX_CALORIES_PER_100G = 900.0; 
     private static final double MAX_PROTEIN_PER_100G = 100.0;
-    private static final double MEAL_LIMIT = 700.0;
 
     private final String productName;
     private final int weightGrams;
@@ -55,14 +54,15 @@ public class Product {
         return proteinPer100g * weightGrams / 100.0;
     }
 
-    public String getComment() {
-        double total = getTotalCalories();
-        if (total > MEAL_LIMIT) {
-            return "Це калорійний прийом їжі — варто врахувати це у денному раціоні.";
-        } else if (total > MEAL_LIMIT / 2) {
-            return "Помірна калорійність прийому їжі.";
-        }
-        return "Легкий прийом їжі за калорійністю.";
+    @Override
+    public int compareTo(Product other) {
+        return Double.compare(this.getTotalCalories(), other.getTotalCalories());
+    }
+
+    @Override
+    public String toReportLine() {
+        return String.format("%s (%s) — %.2f ккал, %.2f г білка",
+                productName, mealType, getTotalCalories(), getTotalProtein());
     }
 
     public String getProductName() {
