@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.InputMismatchException;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
@@ -24,6 +25,16 @@ public class Main {
         }
 
         demoHierarchy();
+
+        Product sample;
+        try {
+            sample = new Product("Демо-продукт", 250, 300, 20, "обід");
+        } catch (DomainException e) {
+            return; 
+        }
+        demoPolymorphicStrategies(sample);
+        demoStrategyRuntimeSwitch(sample);
+        demoSorting(log);
     }
 
     private static void fillLog(Scanner scanner, MealLog log, int count) {
@@ -33,15 +44,15 @@ public class Main {
             try {
                 addMealFromInput(scanner, log);
                 entered++;
-            } catch (InvalidMealTypeException e) {             
+            } catch (InvalidMealTypeException e) {              // конкретний підтип
                 System.out.println("Помилка: " + e.getMessage() + ". Допустимі значення: "
                         + String.join(", ", e.getAllowedTypes()) + ". Введіть порцію ще раз.");
-            } catch (InvalidNutritionValueException e) {      
+            } catch (InvalidNutritionValueException e) {        // конкретний підтип
                 System.out.println("Помилка: " + e.getMessage() + " (введено: "
                         + e.getInvalidValue() + "). Введіть порцію ще раз.");
-            } catch (DomainException e) {                     
+            } catch (DomainException e) {                       // базовий клас — після підтипів
                 System.out.println("Помилка даних: " + e.getMessage() + ". Введіть порцію ще раз.");
-            } catch (ArrayIndexOutOfBoundsException e) {      
+            } catch (ArrayIndexOutOfBoundsException e) {        // системний виняток
                 System.out.println("Щоденник заповнений (максимум " + MealLog.CAPACITY
                         + " записів). Решту порцій не збережено. [" + e.getMessage() + "]");
                 break;
@@ -69,18 +80,52 @@ public class Main {
         System.out.printf("Вага порції: %d г%n", product.getWeightGrams());
         System.out.printf("Отримано калорій: %.2f ккал%n", product.getTotalCalories());
         System.out.printf("Отримано білка: %.2f г%n", product.getTotalProtein());
-        System.out.printf("Висновок: %s%n", product.getComment());
+        System.out.println("Висновок: " + new CalorieAdviceStrategy().evaluate(product));
     }
 
     private static void printReport(MealLog log) {
         System.out.println("\n===== Підсумок щоденника =====");
         for (int i = 0; i < log.getSize(); i++) {
-            Product p = log.getMeal(i);
-            System.out.printf("%d) %s (%s) — %.2f ккал%n",
-                    i + 1, p.getProductName(), p.getMealType(), p.getTotalCalories());
+            // Reportable.toReportLine() — власний формат рядка звіту
+            System.out.printf("%d) %s%n", i + 1, log.getMeal(i).toReportLine());
         }
         System.out.printf("Всього: %.2f ккал%n", log.totalCalories());
         System.out.printf("Середня калорійність порції: %d ккал%n", log.averageCalories());
+    }
+
+    private static void demoPolymorphicStrategies(Product product) {
+        System.out.println("\n===== ЛР4: поліморфні стратегії оцінки порції =====");
+        MealAdviceStrategy[] strategies = {
+                new CalorieAdviceStrategy(),
+                new ProteinAdviceStrategy(),
+                new BalancedAdviceStrategy()
+        };
+        for (MealAdviceStrategy strategy : strategies) {
+            System.out.println(strategy.shortLabel() + ": " + strategy.evaluate(product));
+        }
+    }
+
+    private static void demoStrategyRuntimeSwitch(Product product) {
+        System.out.println("\n===== ЛР4: зміна стратегії під час виконання (Strategy) =====");
+        MealAdviser adviser = new MealAdviser(new CalorieAdviceStrategy());
+        System.out.println("До зміни -> " + adviser.giveAdvice(product));
+        adviser.setStrategy(new ProteinAdviceStrategy()); 
+        System.out.println("Після зміни -> " + adviser.giveAdvice(product));
+    }
+
+    private static void demoSorting(MealLog log) {
+        if (log.getSize() == 0) {
+            return;
+        }
+        Product[] sorted = new Product[log.getSize()];
+        for (int i = 0; i < log.getSize(); i++) {
+            sorted[i] = log.getMeal(i);
+        }
+        Arrays.sort(sorted); 
+        System.out.println("\n===== ЛР4: порції, відсортовані за калорійністю =====");
+        for (Product p : sorted) {
+            System.out.println(p.toReportLine());
+        }
     }
 
     private static int readInt(Scanner scanner, String prompt) {
@@ -88,7 +133,7 @@ public class Main {
             System.out.print(prompt);
             try {
                 int value = scanner.nextInt();
-                scanner.nextLine(); 
+                scanner.nextLine(); // з'їдаємо залишок рядка
                 return value;
             } catch (InputMismatchException e) {
                 String bad = scanner.nextLine();
@@ -111,7 +156,7 @@ public class Main {
             }
         }
     }
-    
+
     private static void demoHierarchy() {
         System.out.println("\n===== Демо: catch базового класу DomainException =====");
         for (int i = 0; i < 2; i++) {
