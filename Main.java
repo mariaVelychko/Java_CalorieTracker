@@ -107,11 +107,13 @@ public class Main {
             catch (DomainException e) { System.out.println(e.getClass().getSimpleName() + " -> " + e.getMessage()); }
         }
     }
+    
     private static void demoObserverUnsubscribe() throws DomainException {
         System.out.println("\n===== Observer: два підписники та відписка =====");
         MealLog demo = new MealLog();
         ConsoleMealObserver journal = new ConsoleMealObserver();
-        demo.addListener(journal); demo.addListener(new CalorieSummaryObserver());
+        demo.addListener(journal);
+        demo.addListener(new CalorieSummaryObserver());
         demo.addMeal("Яблуко", 100, 52, 0.3, "перекус");
         demo.removeListener(journal);
         System.out.println("Журнал відписано: наступну подію отримує лише підсумок.");

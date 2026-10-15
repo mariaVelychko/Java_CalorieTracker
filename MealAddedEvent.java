@@ -1,4 +1,3 @@
-// Незмінний знімок даних після успішного додавання порції.
 public final class MealAddedEvent {
     private final Product product;
     private final int size;
