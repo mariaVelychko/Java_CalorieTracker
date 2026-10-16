@@ -1,131 +1,168 @@
-# ЛР5. Рефакторинг із патернами Factory, Observer, Adapter — облік спожитих калорій
+# ЛР6. Ієрархія класів на основі наслідування — щоденник харчування
 
-Продовження ЛР1–ЛР4 (`Main`, `Product`, `MealLog`, власні винятки, Strategy). Проведено рефакторинг наявного коду: централізовано створення стратегій, додано сповіщення про додавання порції та інтеграцію із зовнішнім несумісним сервісом.
+Продовження ЛР1–ЛР5. Додано ієрархію класів для продуктів харчування,
+абстрактний базовий клас, поліморфізм, sealed-ієрархію та композицію.
 
-## Factory Method
+## Ієрархія класів
 
-У ЛР4 конкретні стратегії створювалися напряму через `new` у кількох місцях `Main`, а `BalancedAdviceStrategy` сам створювала свої залежності. Це ускладнювало підтримку: щоб додати нову стратегію, потрібно було змінювати кілька файлів.
+```mermaid
+classDiagram
+    class FoodItem {
+        <<abstract sealed>>
+        -String name
+        -int weightGrams
+        -double caloriesPer100g
+        -double proteinPer100g
+        -String mealType
+        +getFoodDescription()*
+        +getTotalCalories() final
+        +getTotalProtein() final
+        +toString()
+        +equals(Object)
+        +hashCode()
+    }
 
-Тепер створення об’єктів винесено в `MealAdviceFactory`. Фабрика приймає `AdviceType` або рядковий код і повертає готовий об’єкт типу `MealAdviceStrategy`.
+    class MealProduct {
+        <<non-sealed abstract>>
+    }
 
+    class FruitProduct {
+        -double sugarGrams
+        +getFoodDescription()
+        +toString()
+        +equals(Object)
+        +hashCode()
+    }
+
+    class ProteinProduct {
+        -String proteinType
+        +getFoodDescription()
+        +toString()
+        +equals(Object)
+        +hashCode()
+    }
+
+    class SupplementProduct {
+        -double dailyNormGrams
+        +getFoodDescription()
+        +toString()
+        +equals(Object)
+        +hashCode()
+    }
+
+    FoodItem <|-- MealProduct
+    FoodItem <|-- SupplementProduct
+    MealProduct <|-- FruitProduct
+    MealProduct <|-- ProteinProduct
 ```
-Main / MealAdviser
-       │
-       ▼
-MealAdviceFactory.create(AdviceType)
-       │
-       ├── CalorieAdviceStrategy
-       ├── ProteinAdviceStrategy
-       ├── BalancedAdviceStrategy
-       └── LegacyAdviceAdapter
+
+## Перевірка «is-a»
+
+- `FruitProduct` **є** `MealProduct`.
+- `ProteinProduct` **є** `MealProduct`.
+- `MealProduct` **є** `FoodItem`.
+- `SupplementProduct` **є** `FoodItem`.
+
+Тому наслідування тут доречне.
+
+## Абстрактний клас
+
+`FoodItem` — абстрактний, бо не можна створити просто «їжу» без конкретного типу.
+Метод `getFoodDescription()` абстрактний, бо кожен підклас описує себе по-своєму:
+
+- фрукт — вказує цукор;
+- білковий продукт — вказує тип білка;
+- добавка — вказує добову норму.
+
+## Три рівні ієрархії
+
+```text
+FoodItem → MealProduct → FruitProduct
+FoodItem → MealProduct → ProteinProduct
+FoodItem → SupplementProduct
 ```
 
-**До:**
+При створенні `FruitProduct` конструктори викликаються в такому порядку:
+
+1. `FoodItem`;
+2. `MealProduct`;
+3. `FruitProduct`.
+
+У кожному конструкторі є повідомлення в консоль, тому порядок видно під час запуску.
+
+## super та this
+
+`FruitProduct` використовує `this(...)` для делегування між конструкторами:
 
 ```java
-MealAdviser adviser = new MealAdviser(new CalorieAdviceStrategy());
-adviser.setStrategy(new ProteinAdviceStrategy());
+public FruitProduct(...) {
+    this(..., true);
+}
 ```
 
-**Після:**
+А потім викликає конструктор базового класу:
 
 ```java
-MealAdviser adviser = new MealAdviser(MealAdviceFactory.create(AdviceType.CALORIE));
-adviser.setStrategy(MealAdviceFactory.create(AdviceType.PROTEIN));
+super(name, weightGrams, caloriesPer100g, proteinPer100g, mealType);
 ```
 
-Клієнтський код більше не залежить від конкретних конструкторів стратегій. Щоб додати новий варіант, достатньо створити клас, додати значення в `AdviceType` та гілку у фабриці; `Main` і `MealAdviser` змінювати не потрібно.
+`super(...)` викликає конструктор батьківського класу. `this(...)`
+викликає інший конструктор того самого класу. В одному конструкторі
+можна використати лише один із них, і тільки першим оператором.
 
-У проєкті використано **Simple Factory** — статичний метод із параметром. Це відповідає умові ЛР5 про окремий Factory-клас або Factory-метод. Класичний GoF Factory Method із Creator та перевизначенням методу у підкласах не вводився, щоб не ускладнювати невеликий проєкт.
+## Перевизначення та поліморфізм
 
-## Observer
+Кожен підклас перевизначає:
 
-У предметній області додавання порції — це зміна стану щоденника. Після успішного додавання запису інші частини програми можуть реагувати: вести журнал, перераховувати підсумок тощо.
+- `getFoodDescription()`;
+- `toString()`;
+- `equals()`;
+- `hashCode()`.
 
-Реалізовано патерн Observer:
+У `Main` створено список базового типу:
 
-```
-MealLog (Subject)
-├── зберігає список MealLogListener
-├── addListener(...) / removeListener(...)
-└── після успішного addMeal(...) викликає onMealAdded(...)
-
-MealLogListener (Observer)
-└── onMealAdded(MealAddedEvent event)
-        │
-        ├── ConsoleMealObserver      — журнал доданих порцій
-        └── CalorieSummaryObserver   — кількість порцій і сумарні калорії
+```java
+List<FoodItem> items = new ArrayList<>();
 ```
 
-`MealLog` знає підписників лише через інтерфейс `MealLogListener`, а не через конкретні класи. Тому нового спостерігача можна додати без зміни коду суб’єкта: достатньо реалізувати інтерфейс і викликати `addListener(...)`.
+У циклі викликається `getFoodDescription()` та `toString()`.
+Java викликає метод фактичного типу об’єкта — це динамічне зв’язування.
 
-Подія створюється тільки після успішної валідації та збереження порції. Якщо дані некоректні або щоденник переповнений, запис не додається і спостерігачі не отримують сповіщення.
+## final
 
-У `Main.demoObserverUnsubscribe()` показано два різні спостерігачі, підписані на один `MealLog`, а також відписку `ConsoleMealObserver`: наступну подію отримує лише `CalorieSummaryObserver`.
+Методи `getTotalCalories()` та `getTotalProtein()` зроблено `final`,
+бо формули мають бути однаковими для всіх видів їжі. Підкласи не повинні
+їх змінювати.
 
-## Adapter
+`FruitProduct`, `ProteinProduct` і `SupplementProduct` — `final` класи,
+бо вони не мають змістовних підкласів у цій предметній області.
 
-`LegacyNutritionService` моделює сторонній або застарілий API. Він не реалізує `MealAdviceStrategy`, приймає інші одиниці вимірювання та повертає числовий код:
+## Sealed
 
-- енергія — у кілоджоулях;
-- білок — у міліграмах;
-- результат — `int` (`0`, `1`, `2`).
+`FoodItem` оголошено як:
 
-Наш код очікує `MealAdviceStrategy` з методом `evaluate(Product)`. Щоб не змінювати сторонній сервіс, додано `LegacyAdviceAdapter`.
-
-```
-Main / MealAdviser
-       │
-       ▼
-MealAdviceStrategy (очікуваний інтерфейс)
-       ▲
-       │ implements
-LegacyAdviceAdapter
-       │ містить посилання через композицію
-       ▼
-LegacyNutritionService (несумісний API)
+```java
+public abstract sealed class FoodItem
+        permits MealProduct, SupplementProduct
 ```
 
-Адаптер виконує переклад:
+Це гарантує компілятору, що безпосередніми підкласами можуть бути лише
+`MealProduct` та `SupplementProduct`. Тому `switch` із pattern matching
+може бути вичерпним без `default`.
 
-| Наш інтерфейс | Зовнішній сервіс |
-| --- | --- |
-| `evaluate(Product)` | `classifyServing(double, double)` |
-| калорії в ккал | енергія в кДж |
-| білок у грамах | білок у міліграмах |
-| текстова порада | числовий код `0/1/2` |
+## Композиція замість наслідування
 
-Це саме Adapter, а не переписування сервісу: `LegacyNutritionService` залишається без змін і може використовуватися іншими клієнтами. Адаптер містить посилання на сервіс через композицію, а не успадковується від нього.
+`Product` із попередніх ЛР **має** `FoodItem`, але **не є** `FoodItem`.
+Тому між ними композиція, а не наслідування.
 
-## Взаємодія патернів
+Якщо зробити `Product extends FoodItem`, то продукт харчування раптом
+отримав би поведінку окремої їжі, хоча насправді є записом у щоденнику.
+Це порушило б принцип «is-a».
 
-- **Factory** відповідає на питання: *який об’єкт створити?*
-- **Strategy** відповідає на питання: *яку поведінку оцінки використати?*
-- **Adapter** дозволяє підключити несумісний зовнішній сервіс як одну зі стратегій.
-- **Observer** реагує на зміну стану `MealLog` незалежно від вибраної стратегії.
+## Запуск
 
-Наприклад, фабрика може створити `LegacyAdviceAdapter`, а `MealAdviser` використає його як звичайну стратегію. При цьому `MealLog` продовжує сповіщати своїх підписників після додавання порції.
-
-## Де що реалізовано
-
-| Вимога | Місце в коді |
-| --- | --- |
-| Рівень 1: Factory-клас або Factory-метод із параметром | `MealAdviceFactory.create(AdviceType)` |
-| Рівень 1: заміна прямих `new` у клієнтському коді | `Main`, `BalancedAdviceStrategy` |
-| Рівень 1: пояснення проблеми рефакторингу | розділ «Factory Method» |
-| Рівень 2: інтерфейс Observer | `MealLogListener` |
-| Рівень 2: Subject зі списком підписників | `MealLog` |
-| Рівень 2: два різні спостерігачі | `ConsoleMealObserver`, `CalorieSummaryObserver` |
-| Рівень 3: несумісний зовнішній API | `LegacyNutritionService` |
-| Рівень 3: Adapter без зміни несумісного класу | `LegacyAdviceAdapter` |
-| Демонстрація Observer | `Main.demoObserverUnsubscribe()` |
-| Демонстрація Adapter | `Main.demoPolymorphicStrategies()`, `Main.demoStrategyRuntimeSwitch()` |
-
-Повний опис ЛР1–ЛР4 — валідація `Product`, ієрархія винятків, `MealLog`, Strategy, `Comparable` та `Reportable` — без концептуальних змін, див. історію комітів.
-
-## Як запустити
-
-Потрібен JDK 11 або новіший.
+Потрібен JDK 21 або новіший, бо використовуються sealed classes
+та switch із pattern matching.
 
 ```bash
 mkdir out
@@ -133,16 +170,18 @@ javac -encoding UTF-8 -d out *.java
 java -cp out Main
 ```
 
-Запуск автоматичних перевірок:
+Запуск тестів:
 
 ```bash
-java -cp out Lab5Tests
+java -cp out Lab6Tests
 ```
 
-Запуск із демонстраційними даними:
+## Що збережено з ЛР1–5
 
-```bash
-java -cp out Main < demo-input.txt
-```
-
-У Windows можна використати `run.bat` для запуску програми та `test.bat` для запуску тестів.
+- Валідація даних.
+- Власні винятки.
+- Strategy.
+- Factory.
+- Observer.
+- Adapter.
+- Композиція `Product` і `FoodItem`.
