@@ -12,7 +12,7 @@ public abstract sealed class FoodItem extends BaseEntity
                        double caloriesPer100g,
                        double proteinPer100g,
                        String mealType) {
-        super(id, name); // перевірка назви й присвоєння id/name — у BaseEntity
+        super(id, name); 
         System.out.println("[FoodItem] Виклик базового конструктора");
 
         if (weightGrams < 1 || weightGrams > 5000) {
@@ -55,11 +55,6 @@ public abstract sealed class FoodItem extends BaseEntity
                 getName(), mealType, getTotalCalories(), getTotalProtein());
     }
 
-    /**
-     * Навмисно ЗАЛИШЕНО структурну рівність з ЛР6 (за значеннями полів),
-     * а не id-рівність з BaseEntity. Це означає, що FoodItem.equals()
-     * НЕ узгоджений з ідентичністю за id — дивись пояснення в README.
-     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

@@ -1,7 +1,3 @@
-/**
- * Базовий клас для всіх сутностей, якими керує CRUD-сервіс.
- * Поле id незмінне після створення (final, задається лише в конструкторі).
- */
 public abstract class BaseEntity {
     private final long id;
     private final String name;
@@ -22,7 +18,6 @@ public abstract class BaseEntity {
         return name;
     }
 
-    /** Ідентичність за id: дві сутності з однаковим id вважаються "однією й тією самою". */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
