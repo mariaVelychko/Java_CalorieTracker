@@ -1,23 +1,20 @@
 import java.util.Objects;
 
-public abstract sealed class FoodItem
+public abstract sealed class FoodItem extends BaseEntity
         permits MealProduct, SupplementProduct {
 
-    private final String name;
     private final int weightGrams;
     private final double caloriesPer100g;
     private final double proteinPer100g;
     private final String mealType;
 
-    protected FoodItem(String name, int weightGrams,
+    protected FoodItem(long id, String name, int weightGrams,
                        double caloriesPer100g,
                        double proteinPer100g,
                        String mealType) {
+        super(id, name); 
         System.out.println("[FoodItem] Виклик базового конструктора");
 
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Назва продукту не може бути порожньою");
-        }
         if (weightGrams < 1 || weightGrams > 5000) {
             throw new IllegalArgumentException("Вага має бути від 1 до 5000 г");
         }
@@ -28,7 +25,6 @@ public abstract sealed class FoodItem
             throw new IllegalArgumentException("Білок має бути від 0 до 100 г/100 г");
         }
 
-        this.name = name.trim();
         this.weightGrams = weightGrams;
         this.caloriesPer100g = caloriesPer100g;
         this.proteinPer100g = proteinPer100g;
@@ -45,10 +41,6 @@ public abstract sealed class FoodItem
         return proteinPer100g * weightGrams / 100.0;
     }
 
-    public String getName() {
-        return name;
-    }
-
     public int getWeightGrams() {
         return weightGrams;
     }
@@ -60,7 +52,7 @@ public abstract sealed class FoodItem
     @Override
     public String toString() {
         return String.format("%s (%s) — %.2f ккал, %.2f г білка",
-                name, mealType, getTotalCalories(), getTotalProtein());
+                getName(), mealType, getTotalCalories(), getTotalProtein());
     }
 
     @Override
@@ -70,13 +62,13 @@ public abstract sealed class FoodItem
         return weightGrams == other.weightGrams
                 && Double.compare(caloriesPer100g, other.caloriesPer100g) == 0
                 && Double.compare(proteinPer100g, other.proteinPer100g) == 0
-                && name.equals(other.name)
+                && getName().equals(other.getName())
                 && mealType.equals(other.mealType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, weightGrams, caloriesPer100g,
+        return Objects.hash(getName(), weightGrams, caloriesPer100g,
                 proteinPer100g, mealType);
     }
 }

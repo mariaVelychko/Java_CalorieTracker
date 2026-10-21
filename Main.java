@@ -43,6 +43,7 @@ public class Main {
         }
 
         demoFoodItemHierarchy();
+        demoCrudService();
     }
 
     private static void fillLog(Scanner scanner, MealLog log, int count) {
@@ -201,9 +202,9 @@ public class Main {
         System.out.println("\n===== ЛР6: ієрархія FoodItem =====");
 
         List<FoodItem> items = new ArrayList<>();
-        items.add(new FruitProduct("Яблуко", 150, 52, 0.3, "перекус", 10));
-        items.add(new ProteinProduct("Куряче філе", 250, 165, 31, "обід", "тваринний"));
-        items.add(new SupplementProduct("Протеїн", 30, 380, 80, "перекус", 30));
+        items.add(new FruitProduct(1, "Яблуко", 150, 52, 0.3, "перекус", 10));
+        items.add(new ProteinProduct(2, "Куряче філе", 250, 165, 31, "обід", "тваринний"));
+        items.add(new SupplementProduct(3, "Протеїн", 30, 380, 80, "перекус", 30));
 
         System.out.println("\n===== Поліморфний виклик =====");
 
@@ -229,24 +230,70 @@ public class Main {
 
         System.out.println("\n===== Factory + sealed switch =====");
 
-        FoodItem created = FoodItemFactory.create(FoodItemType.FRUIT,
+        FoodItem created = FoodItemFactory.create(4, FoodItemType.FRUIT,
                 "Банан", 120, 89, 1.1, "перекус");
 
         System.out.println(created);
         System.out.println(describeFood(created));
 
-        System.out.println("\n===== equals і hashCode =====");
+        System.out.println("\n===== equals і hashCode (структурна рівність FoodItem) =====");
 
-        FruitProduct apple1 = new FruitProduct("Яблуко", 150, 52, 0.3, "перекус", 10);
-        FruitProduct apple2 = new FruitProduct("Яблуко", 150, 52, 0.3, "перекус", 10);
-        ProteinProduct chicken = new ProteinProduct("Куряче філе", 250, 165, 31,
+        FruitProduct apple1 = new FruitProduct(10, "Яблуко", 150, 52, 0.3, "перекус", 10);
+        FruitProduct apple2 = new FruitProduct(11, "Яблуко", 150, 52, 0.3, "перекус", 10);
+        ProteinProduct chicken = new ProteinProduct(12, "Куряче філе", 250, 165, 31,
                 "обід", "тваринний");
 
-        System.out.println("apple1.equals(apple2): " + apple1.equals(apple2));
+        System.out.println("apple1.getId() = " + apple1.getId() + ", apple2.getId() = " + apple2.getId());
+        System.out.println("apple1.equals(apple2): " + apple1.equals(apple2)
+                + "  <- true попри різні id, бо FoodItem.equals порівнює ЗНАЧЕННЯ полів, не id");
         System.out.println("apple2.equals(apple1): " + apple2.equals(apple1));
         System.out.println("apple1.equals(chicken): " + apple1.equals(chicken));
         System.out.println("hashCode apple1: " + apple1.hashCode());
         System.out.println("hashCode apple2: " + apple2.hashCode());
+    }
+
+    private static void demoCrudService() {
+        System.out.println("\n===== ЛР7-9: CRUD-сервіс, generics, сортування =====");
+
+        InMemoryFruitProductService fruitService = new InMemoryFruitProductService();
+        InMemoryCrudService<ProteinProduct> proteinService = new InMemoryCrudService<>();
+
+        fruitService.save(new FruitProduct(1, "Яблуко", 150, 52, 0.3, "перекус", 10));
+        fruitService.save(new FruitProduct(2, "Банан", 120, 89, 1.1, "перекус", 12));
+        fruitService.save(new FruitProduct(3, "Яблуко", 180, 48, 0.4, "вечеря", 9)); // те саме ім'я, інший цукор
+
+        System.out.println("\n--- Оновлення наявної сутності (save з тим самим id) ---");
+        System.out.println("Записів до повторного save: " + fruitService.findAll().size());
+        fruitService.save(new FruitProduct(1, "Яблуко", 200, 55, 0.3, "перекус", 14));
+        System.out.println("Записів після повторного save(id=1): " + fruitService.findAll().size());
+
+        System.out.println("\n--- findAll() до сортування ---");
+        EntityUtils.printAll(fruitService.findAll());
+
+        System.out.println("\n--- findAllSortedByName() ---");
+        EntityUtils.printAll(fruitService.findAllSortedByName());
+
+        System.out.println("\n--- findAllSortedByNameAndBySugar() (вторинне сортування за цукром) ---");
+        EntityUtils.printAll(fruitService.findAllSortedByNameAndBySugar());
+
+        System.out.println("\n--- findAll() ПІСЛЯ сортувань: порядок і склад сховища не змінились ---");
+        EntityUtils.printAll(fruitService.findAll());
+
+        System.out.println("\n--- delete: успішний і неуспішний ---");
+        System.out.println("delete(2) -> " + fruitService.delete(2)); // є
+        System.out.println("delete(999) -> " + fruitService.delete(999)); // немає
+
+        System.out.println("\n--- findById: неіснуючий id кидає EntityNotFoundException ---");
+        try {
+            fruitService.findById(999);
+        } catch (EntityNotFoundException e) {
+            System.out.println("Спіймано: " + e.getMessage());
+        }
+
+        System.out.println("\n--- Той самий клас InMemoryCrudService<T> для ProteinProduct ---");
+        proteinService.save(new ProteinProduct(100, "Куряче філе", 250, 165, 31, "обід", "тваринний"));
+        proteinService.save(new ProteinProduct(101, "Тофу", 200, 144, 15, "обід", "рослинний"));
+        EntityUtils.printAll(proteinService.findAllSortedByName());
     }
 
 private static String describeFood(FoodItem item) {

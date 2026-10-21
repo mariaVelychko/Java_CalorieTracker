@@ -4,12 +4,12 @@ public final class ProteinProduct extends MealProduct {
 
     private final String proteinType;
 
-    public ProteinProduct(String name, int weightGrams,
+    public ProteinProduct(long id, String name, int weightGrams,
                           double caloriesPer100g,
                           double proteinPer100g,
                           String mealType,
                           String proteinType) {
-        super(name, weightGrams, caloriesPer100g, proteinPer100g, mealType);
+        super(id, name, weightGrams, caloriesPer100g, proteinPer100g, mealType);
         this.proteinType = proteinType;
     }
 
