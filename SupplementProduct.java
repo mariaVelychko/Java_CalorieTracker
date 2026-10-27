@@ -4,12 +4,12 @@ public final class SupplementProduct extends FoodItem {
 
     private final double dailyNormGrams;
 
-    public SupplementProduct(String name, int weightGrams,
+    public SupplementProduct(long id, String name, int weightGrams,
                              double caloriesPer100g,
                              double proteinPer100g,
                              String mealType,
                              double dailyNormGrams) {
-        super(name, weightGrams, caloriesPer100g, proteinPer100g, mealType);
+        super(id, name, weightGrams, caloriesPer100g, proteinPer100g, mealType);
         this.dailyNormGrams = dailyNormGrams;
     }
 

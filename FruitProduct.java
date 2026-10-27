@@ -4,22 +4,22 @@ public final class FruitProduct extends MealProduct {
 
     private final double sugarGrams;
 
-    public FruitProduct(String name, int weightGrams,
+    public FruitProduct(long id, String name, int weightGrams,
                         double caloriesPer100g,
                         double proteinPer100g,
                         String mealType,
                         double sugarGrams) {
-        this(name, weightGrams, caloriesPer100g, proteinPer100g,
+        this(id, name, weightGrams, caloriesPer100g, proteinPer100g,
              mealType, sugarGrams, true);
     }
 
-    public FruitProduct(String name, int weightGrams,
+    public FruitProduct(long id, String name, int weightGrams,
                         double caloriesPer100g,
                         double proteinPer100g,
                         String mealType,
                         double sugarGrams,
                         boolean fresh) {
-        super(name, weightGrams, caloriesPer100g, proteinPer100g, mealType);
+        super(id, name, weightGrams, caloriesPer100g, proteinPer100g, mealType);
         this.sugarGrams = sugarGrams;
     }
 
