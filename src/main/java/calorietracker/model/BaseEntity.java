@@ -1,9 +1,5 @@
 package calorietracker.model;
 
-/**
- * Базовий клас для всіх сутностей, якими керує CRUD-сервіс.
- * Поле id незмінне після створення (final, задається лише в конструкторі).
- */
 public abstract class BaseEntity {
     private final long id;
     private final String name;

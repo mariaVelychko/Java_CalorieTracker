@@ -9,9 +9,6 @@ import calorietracker.jdbc.Tx;
 import calorietracker.model.FoodCategory;
 import calorietracker.model.FruitProduct;
 
-/**
- * Операції, що змінюють КІЛЬКА таблиць, і тому виконуються в одній транзакції.
- */
 public class FoodCatalogService {
     private final DataSource dataSource;
     private final JdbcCategoryService categories;
@@ -25,24 +22,17 @@ public class FoodCatalogService {
         this.fruits = fruits;
     }
 
-    /**
-     * Створює категорію разом з її фруктами: два INSERT у дві таблиці.
-     * Усе або нічого (атомарність): якщо хоч один фрукт не пройшов (CHECK/FK у БД),
-     * rollback скасовує й уже збережену категорію.
-     *
-     * @return кількість збережених фруктів
-     */
+
     public int createCategoryWithFruits(FoodCategory category, List<FruitProduct> items) {
         return Tx.run(dataSource, c -> {
-            categories.save(c, category);                    // таблиця 1
+            categories.save(c, category);                    
             for (FruitProduct item : items) {
-                fruits.save(c, item.withCategory(category.getId())); // таблиця 2 (може кинути SQLException)
+                fruits.save(c, item.withCategory(category.getId()));
             }
             return items.size();
         });
     }
 
-    /** Переносить усі фрукти з однієї категорії в іншу (зміна в fruit_product, перевірка обох категорій). */
     public int moveFruits(long fromCategoryId, long toCategoryId) throws EntityNotFoundException {
         categories.findById(fromCategoryId);
         categories.findById(toCategoryId);

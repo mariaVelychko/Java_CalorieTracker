@@ -1,12 +1,8 @@
 package calorietracker.model;
 
-/**
- * Друга сутність (ЛР10): категорія їжі («Цитрусові», «Ягоди»…).
- * Зв'язок «один до багатьох»: одна категорія — багато фруктів (fruit_product.category_id).
- */
 public final class FoodCategory extends BaseEntity {
 
-    private final String description; // може бути null — у БД колонка без NOT NULL
+    private final String description; 
 
     public FoodCategory(long id, String name, String description) {
         super(id, name);

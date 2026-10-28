@@ -6,7 +6,6 @@ public final class FruitProduct extends MealProduct {
 
     private final double sugarGrams;
     private final boolean fresh;
-    /** ЛР10: зовнішній ключ на категорію (food_category.id); null — категорію не задано. */
     private final Long categoryId;
 
     public FruitProduct(long id, String name, int weightGrams,
@@ -28,7 +27,6 @@ public final class FruitProduct extends MealProduct {
              mealType, sugarGrams, fresh, null);
     }
 
-    /** ЛР10: повний конструктор — з категорією (зовнішній ключ у БД). */
     public FruitProduct(long id, String name, int weightGrams,
                         double caloriesPer100g,
                         double proteinPer100g,
@@ -73,12 +71,10 @@ public final class FruitProduct extends MealProduct {
         return fresh;
     }
 
-    /** @return id категорії або null, якщо фрукт без категорії */
     public Long getCategoryId() {
         return categoryId;
     }
 
-    /** Копія фрукта в іншій категорії (поля final, тому створюємо новий об'єкт). */
     public FruitProduct withCategory(Long newCategoryId) {
         return new FruitProduct(getId(), getName(), getWeightGrams(), getCaloriesPer100g(),
                 getProteinPer100g(), getMealType(), sugarGrams, fresh, newCategoryId);

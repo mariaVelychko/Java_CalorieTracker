@@ -22,10 +22,6 @@ import calorietracker.service.FoodCatalogService;
 import calorietracker.service.FruitProductService;
 import calorietracker.service.InMemoryFruitProductService;
 
-/**
- * ЛР10: демонстрація JDBC-шару. Запуск окремо від інтерактивного Main:
- *   mvn compile exec:java -Dexec.mainClass=JdbcDemo
- */
 public final class JdbcDemo {
 
     private JdbcDemo() {
@@ -35,9 +31,8 @@ public final class JdbcDemo {
         runAll();
     }
 
-    /** Повний набір демо на «справжній» БД (singleton DBConnection, файловий H2). */
     public static void runAll() {
-        FoodItem.traceConstructors = false; // не засмічувати вивід службовими рядками з ЛР6
+        FoodItem.traceConstructors = false; 
         try {
             DBConnection db = DBConnection.getInstance();
             demoSingleton(db);
@@ -54,7 +49,6 @@ public final class JdbcDemo {
         JdbcFruitProductService fruits = new JdbcFruitProductService(ds);
         FoodCatalogService catalog = new FoodCatalogService(ds, categories, fruits);
 
-        // Демо-таблиці очищаємо, щоб запуск можна було повторювати (спочатку дочірню таблицю — через FK).
         fruits.deleteAll();
         categories.deleteAll();
 
@@ -74,10 +68,6 @@ public final class JdbcDemo {
         categories.deleteAll();
     }
 
-    /**
-     * Клієнтський код знає ЛИШЕ інтерфейс FruitProductService. Він не змінюється,
-     * коли сховище в пам'яті замінюють на БД (принцип «програмуй на інтерфейс»).
-     */
     public static void demoSameClientCode(FruitProductService service) {
         service.save(new FruitProduct(1, "Яблуко", 150, 52, 0.3, "перекус", 10));
         service.save(new FruitProduct(2, "Банан", 120, 89, 1.1, "перекус", 12));
@@ -174,11 +164,6 @@ public final class JdbcDemo {
         categories.deleteAll();
     }
 
-    /**
-     * Показ «доброго» методу. «Поганий» (склейка рядків) навмисно НЕ в коді — див. README:
-     *   // ПОГАНО — не робити!
-     *   // st.executeQuery("SELECT ... WHERE name = '" + name + "'");
-     */
     private static void demoInjectionSafe(JdbcFruitProductService fruits) {
         System.out.println("\n===== ЛР10: PreparedStatement проти SQL-ін'єкції =====");
         fruits.save(new FruitProduct(1, "Яблуко", 150, 52, 0.3, "перекус", 10));
@@ -226,7 +211,6 @@ public final class JdbcDemo {
         fruits.deleteAll();
     }
 
-    /** Перевірка Singleton: усі потоки отримують той самий екземпляр і працюють з БД паралельно. */
     private static void demoSingleton(DBConnection db) {
         System.out.println("\n===== ЛР10: Singleton DBConnection у багатопотоковому режимі =====");
         Set<DBConnection> instances = ConcurrentHashMap.newKeySet();
@@ -269,7 +253,6 @@ public final class JdbcDemo {
         return (System.nanoTime() - start) / 1_000_000;
     }
 
-    /** Обрізає довге повідомлення драйвера до першого рядка. */
     private static String shortMessage(Exception e) {
         String m = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
         int nl = m.indexOf('\n');

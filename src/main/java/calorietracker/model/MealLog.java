@@ -25,13 +25,12 @@ public class MealLog {
                 + "), некоректне значення: " + e.getInvalidValue());
             throw e;
         }
-        meals[size] = product; // Як у ЛР4: переповнення дає системний виняток.
+        meals[size] = product; 
         size++;
         notifyListeners(new MealAddedEvent(product, size, totalCalories()));
         return product;
     }
     private void notifyListeners(MealAddedEvent event) {
-        // Знімок дозволяє підписатися/відписатися з callback без зміни поточного обходу.
         for (MealLogListener listener : new ArrayList<>(listeners)) {
             try { listener.onMealAdded(event); }
             catch (RuntimeException e) {

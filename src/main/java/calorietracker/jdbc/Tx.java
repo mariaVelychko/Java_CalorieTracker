@@ -5,12 +5,8 @@ import java.sql.SQLException;
 import javax.sql.DataSource;
 import calorietracker.exception.DataAccessException;
 
-/**
- * Допоміжний клас для транзакцій: одна точка, де є setAutoCommit(false), commit() і rollback().
- */
 public final class Tx {
 
-    /** Робота, яка виконується всередині транзакції на одному Connection. */
     @FunctionalInterface
     public interface Work<R> {
         R run(Connection connection) throws SQLException;
@@ -22,19 +18,19 @@ public final class Tx {
     public static <R> R run(DataSource dataSource, Work<R> work) {
         try (Connection c = dataSource.getConnection()) {
             boolean previousAutoCommit = c.getAutoCommit();
-            c.setAutoCommit(false);              // з цього моменту зміни НЕ видимі іншим, доки немає commit()
+            c.setAutoCommit(false);            
             try {
                 R result = work.run(c);
-                c.commit();                       // усі зміни фіксуються разом
+                c.commit();                       
                 return result;
             } catch (SQLException | RuntimeException e) {
-                rollbackQuietly(c, e);            // будь-який збій — скасовуємо ВСЕ, що зробили в цій транзакції
+                rollbackQuietly(c, e);           
                 if (e instanceof SQLException sql) {
                     throw new DataAccessException("Транзакцію скасовано (rollback)", sql);
                 }
                 throw (RuntimeException) e;
             } finally {
-                c.setAutoCommit(previousAutoCommit); // важливо для з'єднань з пулу
+                c.setAutoCommit(previousAutoCommit); 
             }
         } catch (SQLException e) {
             throw new DataAccessException("Помилка роботи з'єднання", e);

@@ -10,13 +10,6 @@ import java.util.Objects;
 import calorietracker.exception.EntityNotFoundException;
 import calorietracker.model.BaseEntity;
 
-/**
- * Узагальнена реалізація сховища в пам'яті. Той самий клас без жодних змін
- * працює з будь-якою сутністю, що успадковує BaseEntity (демонстрація — у Main).
- *
- * Сховище: LinkedHashMap<Long, T>. Обґрунтування — у README (таблиця порівняння
- * ArrayList / HashMap / LinkedHashMap / TreeMap).
- */
 public class InMemoryCrudService<T extends BaseEntity> implements CRUDService<T> {
     private final Map<Long, T> storage = new LinkedHashMap<>();
 

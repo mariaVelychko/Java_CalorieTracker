@@ -8,12 +8,6 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
 
-/**
- * Мінімальна реалізація javax.sql.DataSource поверх DriverManager.
- * Не має змінного стану (url/user/password — final), тому потокобезпечна:
- * кожен виклик getConnection() віддає НОВЕ з'єднання, яке викликач закриває сам
- * (try-with-resources). Це і є «DataSource замість одного спільного Connection».
- */
 public final class SimpleDataSource implements DataSource {
     private final String url;
     private final String user;

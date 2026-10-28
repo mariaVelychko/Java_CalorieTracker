@@ -67,7 +67,7 @@ public class Main {
 
         demoFoodItemHierarchy();
         demoCrudService();
-        JdbcDemo.runAll(); // ЛР10: те саме, але сховище в БД (H2, файловий режим)
+        JdbcDemo.runAll(); 
     }
 
     private static void fillLog(Scanner scanner, MealLog log, int count) {
@@ -262,7 +262,6 @@ public class Main {
 
         System.out.println("\n===== equals і hashCode (структурна рівність FoodItem) =====");
 
-        // Різні id (10 і 11), але однакові значення полів:
         FruitProduct apple1 = new FruitProduct(10, "Яблуко", 150, 52, 0.3, "перекус", 10);
         FruitProduct apple2 = new FruitProduct(11, "Яблуко", 150, 52, 0.3, "перекус", 10);
         ProteinProduct chicken = new ProteinProduct(12, "Куряче філе", 250, 165, 31,
@@ -277,11 +276,9 @@ public class Main {
         System.out.println("hashCode apple2: " + apple2.hashCode());
     }
 
-    /** ЛР7-9: типізований CRUD-сервіс, колекції, Comparable/Comparator. */
     private static void demoCrudService() {
         System.out.println("\n===== ЛР7-9: CRUD-сервіс, generics, сортування =====");
 
-        // --- Рівень 1: той самий клас InMemoryCrudService<T> для ДВОХ різних сутностей ---
         InMemoryFruitProductService fruitService = new InMemoryFruitProductService();
         InMemoryCrudService<ProteinProduct> proteinService = new InMemoryCrudService<>();
 
@@ -291,8 +288,6 @@ public class Main {
 
         System.out.println("\n--- Оновлення наявної сутності (save з тим самим id) ---");
         System.out.println("Записів до повторного save: " + fruitService.findAll().size());
-        // Те саме ім'я "Яблуко" й id=1, але інша вага/цукор — перевіряємо саме ОНОВЛЕННЯ,
-        // а не перейменування (щоб не зламати дублікат імені для демонстрації сортування нижче).
         fruitService.save(new FruitProduct(1, "Яблуко", 200, 55, 0.3, "перекус", 14));
         System.out.println("Записів після повторного save(id=1): " + fruitService.findAll().size());
 

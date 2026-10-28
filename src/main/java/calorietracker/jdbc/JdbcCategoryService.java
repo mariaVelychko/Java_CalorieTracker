@@ -6,7 +6,6 @@ import java.sql.SQLException;
 import javax.sql.DataSource;
 import calorietracker.model.FoodCategory;
 
-/** Сховище категорій у БД. Увесь каркас — у AbstractJdbcCrudService, тут лише SQL і мапінг. */
 public class JdbcCategoryService extends AbstractJdbcCrudService<FoodCategory> {
 
     public JdbcCategoryService(DataSource dataSource) {
@@ -38,13 +37,13 @@ public class JdbcCategoryService extends AbstractJdbcCrudService<FoodCategory> {
         return new FoodCategory(
                 rs.getLong("id"),
                 rs.getString("name"),
-                rs.getString("description")); // NULL у БД → null у Java
+                rs.getString("description")); 
     }
 
     @Override
     protected void setParameters(PreparedStatement ps, FoodCategory category) throws SQLException {
         ps.setString(1, category.getName());
-        ps.setString(2, category.getDescription()); // setString(null) → SQL NULL
+        ps.setString(2, category.getDescription());
         ps.setLong(3, category.getId());
     }
 }

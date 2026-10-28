@@ -5,11 +5,6 @@ import java.util.Objects;
 public abstract sealed class FoodItem extends BaseEntity
         permits MealProduct, SupplementProduct {
 
-    /**
-     * Показувати службові повідомлення з конструкторів (демонстрація ланцюга
-     * викликів з ЛР6). У ЛР10 JDBC-демо вимикає їх, бо при читанні рядків із БД
-     * конструктор викликається для кожного рядка.
-     */
     public static volatile boolean traceConstructors = true;
 
     private final int weightGrams;
@@ -21,7 +16,7 @@ public abstract sealed class FoodItem extends BaseEntity
                        double caloriesPer100g,
                        double proteinPer100g,
                        String mealType) {
-        super(id, name); // перевірка назви й присвоєння id/name — у BaseEntity
+        super(id, name); 
         if (traceConstructors) System.out.println("[FoodItem] Виклик базового конструктора");
 
         if (weightGrams < 1 || weightGrams > 5000) {
@@ -54,7 +49,7 @@ public abstract sealed class FoodItem extends BaseEntity
         return weightGrams;
     }
 
-    /** ЛР10: потрібні для запису в БД (там зберігаються значення на 100 г). */
+
     public double getCaloriesPer100g() {
         return caloriesPer100g;
     }

@@ -9,10 +9,6 @@ import java.sql.Statement;
 import javax.sql.DataSource;
 import calorietracker.exception.DataAccessException;
 
-/**
- * Виконує init.sql із classpath. Скрипт ідемпотентний (IF NOT EXISTS),
- * тому викликати його можна при кожному запуску програми.
- */
 public final class DatabaseInitializer {
 
     private static final String SCRIPT = "init.sql";
@@ -24,7 +20,7 @@ public final class DatabaseInitializer {
         String script = readScript();
         try (Connection c = dataSource.getConnection(); Statement st = c.createStatement()) {
             for (String sql : split(script)) {
-                st.execute(sql); // DDL без параметрів, тому звичайний Statement тут доречний
+                st.execute(sql); 
             }
         } catch (SQLException e) {
             throw new DataAccessException("Не вдалося виконати " + SCRIPT, e);
@@ -32,7 +28,6 @@ public final class DatabaseInitializer {
     }
 
     private static String readScript() {
-        // src/main/resources/init.sql після збірки лежить у кореневій теці classpath
         try (InputStream in = DatabaseInitializer.class.getClassLoader().getResourceAsStream(SCRIPT)) {
             if (in == null) {
                 throw new IllegalStateException("Не знайдено " + SCRIPT + " у classpath");
@@ -43,7 +38,6 @@ public final class DatabaseInitializer {
         }
     }
 
-    /** Прибирає коментарі «-- …» і ділить скрипт на команди за «;». */
     static java.util.List<String> split(String script) {
         StringBuilder noComments = new StringBuilder();
         for (String line : script.split("\\R")) {

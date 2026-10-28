@@ -30,14 +30,12 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Тести: потрапляють тільки в test-classpath, у jar не входять -->
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- H2 потрібен і тестам (in-memory БД); runtime-scope доступний у test-classpath -->
     </dependencies>
 
     <build>
@@ -52,7 +50,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.2</version>
             </plugin>
-            <!-- mvn exec:java запускає Main без ручного classpath -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -61,7 +58,6 @@
                     <mainClass>calorietracker.app.Main</mainClass>
                 </configuration>
             </plugin>
-            <!-- mvn package: jar із записом Main-Class (запуск: java -cp ... Main, див. README) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>

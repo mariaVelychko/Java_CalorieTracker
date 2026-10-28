@@ -9,10 +9,6 @@ import javax.sql.DataSource;
 import calorietracker.model.FruitProduct;
 import calorietracker.service.FruitProductService;
 
-/**
- * JDBC-версія FruitProductService. Реалізує ТОЙ САМИЙ інтерфейс, що й
- * InMemoryFruitProductService з ЛР7, тому підставляється замість нього без змін у клієнтському коді.
- */
 public class JdbcFruitProductService extends AbstractJdbcCrudService<FruitProduct>
         implements FruitProductService {
 
@@ -47,11 +43,9 @@ public class JdbcFruitProductService extends AbstractJdbcCrudService<FruitProduc
                 + "WHERE id = ?";
     }
 
-    /** Єдине місце, де рядок ResultSet перетворюється на FruitProduct. */
     @Override
     protected FruitProduct mapRow(ResultSet rs) throws SQLException {
         long categoryId = rs.getLong("category_id");
-        // getLong для NULL повертає 0, тому 0 від NULL відрізняємо через wasNull()
         Long category = rs.wasNull() ? null : categoryId;
         return new FruitProduct(
                 rs.getLong("id"),
@@ -75,20 +69,18 @@ public class JdbcFruitProductService extends AbstractJdbcCrudService<FruitProduc
         ps.setDouble(6, f.getSugarGrams());
         ps.setBoolean(7, f.isFresh());
         if (f.getCategoryId() == null) {
-            ps.setNull(8, Types.BIGINT);     // без категорії → NULL у колонці FK
+            ps.setNull(8, Types.BIGINT);     
         } else {
             ps.setLong(8, f.getCategoryId());
         }
         ps.setLong(9, f.getId());
     }
 
-    /** ORDER BY name, sugar_grams — сортування виконує БД (рівень 2, п. 8). */
     @Override
     public List<FruitProduct> findAllSortedByNameAndBySugar() {
         return findAllOrderedBy("name, sugar_grams, id");
     }
 
-    /** Безпечний пошук: значення йде параметром «?», а не склеюється в текст запиту. */
     public List<FruitProduct> findByName(String name) {
         return query(selectSql() + " WHERE name = ? ORDER BY id", ps -> ps.setString(1, name));
     }

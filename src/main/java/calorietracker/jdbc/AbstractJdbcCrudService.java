@@ -14,20 +14,6 @@ import calorietracker.exception.EntityNotFoundException;
 import calorietracker.model.BaseEntity;
 import calorietracker.service.CRUDService;
 
-/**
- * Template Method: ТУТ написаний «каркас» усіх операцій (відкрити з'єднання, підготувати
- * запит, виконати, перетворити рядки, закрити ресурси, обробити помилки).
- * Підклас лише підставляє «змінні кроки»:
- *   tableName(), selectSql(), insertSql(), updateSql(), mapRow(ResultSet), setParameters(ps, entity).
- *
- * Це JDBC-аналог InMemoryCrudService<T> з ЛР7: той самий інтерфейс CRUDService<T>,
- * тому код, що користується сервісом, не помічає різниці.
- *
- * Домовленість про параметри: setParameters прив'язує значення у порядку
- *   [колонки даних..., id],
- * тобто id — ЗАВЖДИ останній параметр. Тому один і той самий setParameters
- * підходить і для INSERT (…, id) VALUES (?, …, ?), і для UPDATE … SET … WHERE id = ?.
- */
 public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements CRUDService<T> {
 
     private static final int MAX_PAGE_SIZE = 1000;
@@ -39,31 +25,23 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
         this.dataSource = Objects.requireNonNull(dataSource, "DataSource не може бути null");
     }
 
-    // ---------- «змінні кроки», які надає підклас ----------
 
     protected abstract String tableName();
 
-    /** SELECT усіх колонок БЕЗ WHERE/ORDER BY, напр. "SELECT id, name FROM t". */
     protected abstract String selectSql();
 
-    /** INSERT, де id — останній параметр. */
     protected abstract String insertSql();
 
-    /** UPDATE ... WHERE id = ? — id останній параметр. */
     protected abstract String updateSql();
 
-    /** Перетворення ПОТОЧНОГО рядка ResultSet на об'єкт (курсор не пересуває!). */
     protected abstract T mapRow(ResultSet rs) throws SQLException;
 
-    /** Прив'язка полів сутності до параметрів «?»: дані, а наприкінці — id. */
     protected abstract void setParameters(PreparedStatement ps, T entity) throws SQLException;
 
-    /** ORDER BY за замовчуванням. Це константа підкласу, НЕ ввід користувача. */
     protected String defaultOrderBy() {
         return "name, id";
     }
 
-    // ---------- каркас операцій ----------
 
     @Override
     public T findById(long id) throws EntityNotFoundException {
@@ -72,17 +50,16 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, id);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {          // курсор спочатку стоїть ПЕРЕД першим рядком
+                if (rs.next()) {          
                     return mapRow(rs);
                 }
             }
         } catch (SQLException e) {
             throw new DataAccessException("findById(" + id + ")", e);
         }
-        throw new EntityNotFoundException(id); // рядка немає — сигналізуємо винятком, не null
+        throw new EntityNotFoundException(id);
     }
 
-    /** Додає нову сутність або оновлює наявну за id (як Map.put в InMemoryCrudService). */
     @Override
     public void save(T entity) {
         Objects.requireNonNull(entity, "Сутність не може бути null");
@@ -93,17 +70,13 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
         }
     }
 
-    /**
-     * Те саме, але на ЧУЖОМУ з'єднанні — щоб кілька save() можна було виконати в одній транзакції
-     * (з'єднання тоді відкриває й закриває той, хто керує транзакцією).
-     */
     public void save(Connection c, T entity) throws SQLException {
         int updated;
         try (PreparedStatement ps = c.prepareStatement(updateSql())) {
             setParameters(ps, entity);
-            updated = ps.executeUpdate();     // скільки рядків змінено
+            updated = ps.executeUpdate();   
         }
-        if (updated == 0) {                    // такого id ще немає — вставляємо
+        if (updated == 0) {                    
             try (PreparedStatement ps = c.prepareStatement(insertSql())) {
                 setParameters(ps, entity);
                 ps.executeUpdate();
@@ -117,16 +90,12 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, id);
-            return ps.executeUpdate() > 0;     // true — рядок був і видалений
+            return ps.executeUpdate() > 0;     
         } catch (SQLException e) {
             throw new DataAccessException("delete(" + id + ")", e);
         }
     }
 
-    /**
-     * Сортування «довільним Comparator» вимагає всіх записів у пам'яті, тому для великих таблиць
-     * краще findAllSortedByName() (ORDER BY у БД) або findPage(...).
-     */
     @Override
     public List<T> findAllSorted(Comparator<? super T> comparator) {
         List<T> all = findAll();
@@ -134,29 +103,20 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
         return all;
     }
 
-    /** ORDER BY виконує БД — переоприділяє default-метод інтерфейсу. */
     @Override
     public List<T> findAllSortedByName() {
         return findAllOrderedBy(defaultOrderBy());
     }
 
-    /**
-     * ОБЕРЕЖНО: без обмеження кількості рядків. На великій таблиці це «вичитує» її всю в пам'ять
-     * (OutOfMemoryError, довгий запит, велике навантаження на мережу) — див. findPage.
-     */
     public List<T> findAll() {
         return query(selectSql(), ps -> { });
     }
 
-    /**
-     * Сортування в БД. orderBy підставляється в текст запиту (параметром «?» назву колонки
-     * передати не можна), тому сюди можна передавати ЛИШЕ константи з коду, ніколи ввід користувача.
-     */
+
     protected List<T> findAllOrderedBy(String orderBy) {
         return query(selectSql() + " ORDER BY " + orderBy, ps -> { });
     }
 
-    /** Сторінка записів (нумерація сторінок з 0), стабільно впорядкована за defaultOrderBy(). */
     public List<T> findPage(int page, int size) {
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
             throw new IllegalArgumentException(
@@ -181,7 +141,6 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
         }
     }
 
-    /** Видаляє всі рядки таблиці (для демо/тестів). */
     public int deleteAll() {
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement("DELETE FROM " + tableName())) {
@@ -191,27 +150,23 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
         }
     }
 
-    // ---------- пакетна вставка та вставка по одному (для порівняння швидкості) ----------
-
-    /** addBatch/executeBatch в одній транзакції. Лише INSERT: id у списку мають бути новими. */
     public void insertAllBatch(List<T> entities) {
         Tx.run(dataSource, c -> {
             try (PreparedStatement ps = c.prepareStatement(insertSql())) {
                 int inBatch = 0;
                 for (T entity : entities) {
                     setParameters(ps, entity);
-                    ps.addBatch();                    // запам'ятовуємо, не відправляємо
+                    ps.addBatch();                    
                     if (++inBatch % BATCH_CHUNK == 0) {
-                        ps.executeBatch();            // відправляємо порцію
+                        ps.executeBatch();          
                     }
                 }
-                ps.executeBatch();                    // залишок
+                ps.executeBatch();                   
             }
             return null;
         });
     }
 
-    /** Кожен INSERT — окремий виклик executeUpdate() і окремий commit (autoCommit = true). */
     public void insertAllOneByOne(List<T> entities) {
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(insertSql())) {
@@ -224,7 +179,6 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
         }
     }
 
-    /** Кожен INSERT — окремий executeUpdate(), але commit один наприкінці. */
     public void insertAllOneByOneInTransaction(List<T> entities) {
         Tx.run(dataSource, c -> {
             try (PreparedStatement ps = c.prepareStatement(insertSql())) {
@@ -237,9 +191,6 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
         });
     }
 
-    // ---------- спільні помічники ----------
-
-    /** Виконує SELECT і мапить КОЖЕН рядок через mapRow — єдине місце циклу по ResultSet. */
     protected List<T> query(String sql, SqlConsumer binder) {
         List<T> result = new ArrayList<>();
         try (Connection c = dataSource.getConnection();
