@@ -4,7 +4,6 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- GAV-координати нашого проєкту -->
     <groupId>ua.edu.calorietracker</groupId>
     <artifactId>calorie-tracker</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -12,17 +11,14 @@
     <name>CalorieTracker</name>
 
     <properties>
-        <!-- Кодування вихідників: без цього кирилиця в .java може зіпсуватися на Windows (cp1251) -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <!-- Версія Java для компіляції (замінює пару source/target) -->
         <maven.compiler.release>21</maven.compiler.release>
         <h2.version>2.3.232</h2.version>
         <junit.version>4.13.2</junit.version>
     </properties>
 
     <dependencies>
-        <!-- JDBC-драйвер потрібен лише під час виконання, у коді ми його не імпортуємо -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>

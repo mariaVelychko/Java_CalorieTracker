@@ -24,10 +24,6 @@ import calorietracker.service.FoodCatalogService;
 import calorietracker.service.FruitProductService;
 import calorietracker.service.InMemoryFruitProductService;
 
-/**
- * Тести JDBC-шару на H2 in-memory: кожен тест отримує СВОЮ порожню БД (унікальне ім'я),
- * тому тести незалежні й не залишають файлів. Схема береться з того самого init.sql.
- */
 public class JdbcServicesTest {
 
     private JdbcCategoryService categories;
