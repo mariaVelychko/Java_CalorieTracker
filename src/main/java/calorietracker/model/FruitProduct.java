@@ -1,12 +1,35 @@
 package calorietracker.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import java.util.Objects;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
-public final class FruitProduct extends MealProduct {
+@Entity
+@Table(name = "fruit_product")
+public class FruitProduct extends MealProduct {
+    @Column(name = "sugar_grams", nullable = false, precision = 5, scale = 2)
+    @JdbcTypeCode(SqlTypes.NUMERIC)
+    private double sugarGrams;
 
-    private final double sugarGrams;
-    private final boolean fresh;
-    private final Long categoryId;
+    @Column(name = "fresh", nullable = false)
+    private boolean fresh;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private FoodCategory category;
+
+    @Transient
+    private Long categoryId;
+
+    protected FruitProduct() {
+    }
 
     public FruitProduct(long id, String name, int weightGrams,
                         double caloriesPer100g,
@@ -72,7 +95,15 @@ public final class FruitProduct extends MealProduct {
     }
 
     public Long getCategoryId() {
-        return categoryId;
+        return category != null ? Long.valueOf(category.getId()) : categoryId;
+    }
+
+    public FoodCategory getCategory() {
+        return category;
+    }
+
+    void setCategory(FoodCategory category) {
+        this.category = category;
     }
 
     public FruitProduct withCategory(Long newCategoryId) {

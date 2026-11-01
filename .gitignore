@@ -5,3 +5,4 @@ application-local.properties
 .idea/
 *.iml
 .vscode/
+cp.txt

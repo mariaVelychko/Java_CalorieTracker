@@ -15,7 +15,6 @@ import calorietracker.model.BaseEntity;
 import calorietracker.service.CRUDService;
 
 public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements CRUDService<T> {
-
     private static final int MAX_PAGE_SIZE = 1000;
     private static final int BATCH_CHUNK = 1000;
 
@@ -24,7 +23,6 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
     protected AbstractJdbcCrudService(DataSource dataSource) {
         this.dataSource = Objects.requireNonNull(dataSource, "DataSource не може бути null");
     }
-
 
     protected abstract String tableName();
 
@@ -42,7 +40,6 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
         return "name, id";
     }
 
-
     @Override
     public T findById(long id) throws EntityNotFoundException {
         String sql = selectSql() + " WHERE id = ?";
@@ -50,7 +47,7 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, id);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {          
+                if (rs.next()) {
                     return mapRow(rs);
                 }
             }
@@ -74,9 +71,9 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
         int updated;
         try (PreparedStatement ps = c.prepareStatement(updateSql())) {
             setParameters(ps, entity);
-            updated = ps.executeUpdate();   
+            updated = ps.executeUpdate();
         }
-        if (updated == 0) {                    
+        if (updated == 0) {
             try (PreparedStatement ps = c.prepareStatement(insertSql())) {
                 setParameters(ps, entity);
                 ps.executeUpdate();
@@ -90,7 +87,7 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, id);
-            return ps.executeUpdate() > 0;     
+            return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             throw new DataAccessException("delete(" + id + ")", e);
         }
@@ -109,12 +106,11 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
     }
 
     public List<T> findAll() {
-        return query(selectSql(), ps -> { });
+        return query(selectSql());
     }
 
-
     protected List<T> findAllOrderedBy(String orderBy) {
-        return query(selectSql() + " ORDER BY " + orderBy, ps -> { });
+        return query(selectSql() + " ORDER BY " + orderBy);
     }
 
     public List<T> findPage(int page, int size) {
@@ -123,10 +119,7 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
                     "page ≥ 0, size від 1 до " + MAX_PAGE_SIZE + " (отримано " + page + ", " + size + ")");
         }
         String sql = selectSql() + " ORDER BY " + defaultOrderBy() + " LIMIT ? OFFSET ?";
-        return query(sql, ps -> {
-            ps.setInt(1, size);
-            ps.setLong(2, (long) page * size);
-        });
+        return query(sql, size, (long) page * size);
     }
 
     public long count() {
@@ -151,20 +144,26 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
     }
 
     public void insertAllBatch(List<T> entities) {
-        Tx.run(dataSource, c -> {
+        try (Connection c = dataSource.getConnection()) {
+            c.setAutoCommit(false);
             try (PreparedStatement ps = c.prepareStatement(insertSql())) {
                 int inBatch = 0;
                 for (T entity : entities) {
                     setParameters(ps, entity);
-                    ps.addBatch();                    
+                    ps.addBatch();
                     if (++inBatch % BATCH_CHUNK == 0) {
-                        ps.executeBatch();          
+                        ps.executeBatch();
                     }
                 }
-                ps.executeBatch();                   
+                ps.executeBatch();
+                c.commit();
+            } catch (SQLException | RuntimeException e) {
+                c.rollback();
+                throw e;
             }
-            return null;
-        });
+        } catch (SQLException e) {
+            throw new DataAccessException("Транзакцію скасовано (rollback)", e);
+        }
     }
 
     public void insertAllOneByOne(List<T> entities) {
@@ -180,22 +179,30 @@ public abstract class AbstractJdbcCrudService<T extends BaseEntity> implements C
     }
 
     public void insertAllOneByOneInTransaction(List<T> entities) {
-        Tx.run(dataSource, c -> {
+        try (Connection c = dataSource.getConnection()) {
+            c.setAutoCommit(false);
             try (PreparedStatement ps = c.prepareStatement(insertSql())) {
                 for (T entity : entities) {
                     setParameters(ps, entity);
                     ps.executeUpdate();
                 }
+                c.commit();
+            } catch (SQLException | RuntimeException e) {
+                c.rollback();
+                throw e;
             }
-            return null;
-        });
+        } catch (SQLException e) {
+            throw new DataAccessException("Транзакцію скасовано (rollback)", e);
+        }
     }
 
-    protected List<T> query(String sql, SqlConsumer binder) {
+    protected List<T> query(String sql, Object... params) {
         List<T> result = new ArrayList<>();
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
-            binder.accept(ps);
+            for (int i = 0; i < params.length; i++) {
+                ps.setObject(i + 1, params[i]);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     result.add(mapRow(rs));

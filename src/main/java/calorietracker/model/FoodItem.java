@@ -1,22 +1,38 @@
 package calorietracker.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.MappedSuperclass;
 import java.util.Objects;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
+@MappedSuperclass
 public abstract sealed class FoodItem extends BaseEntity
         permits MealProduct, SupplementProduct {
-
     public static volatile boolean traceConstructors = true;
 
-    private final int weightGrams;
-    private final double caloriesPer100g;
-    private final double proteinPer100g;
-    private final String mealType;
+    @Column(name = "weight_grams", nullable = false)
+    private int weightGrams;
+
+    @Column(name = "calories_per_100g", nullable = false, precision = 6, scale = 2)
+    @JdbcTypeCode(SqlTypes.NUMERIC)
+    private double caloriesPer100g;
+
+    @Column(name = "protein_per_100g", nullable = false, precision = 5, scale = 2)
+    @JdbcTypeCode(SqlTypes.NUMERIC)
+    private double proteinPer100g;
+
+    @Column(name = "meal_type", nullable = false, length = 20)
+    private String mealType;
+
+    protected FoodItem() {
+    }
 
     protected FoodItem(long id, String name, int weightGrams,
                        double caloriesPer100g,
                        double proteinPer100g,
                        String mealType) {
-        super(id, name); 
+        super(id, name);
         if (traceConstructors) System.out.println("[FoodItem] Виклик базового конструктора");
 
         if (weightGrams < 1 || weightGrams > 5000) {
@@ -49,7 +65,6 @@ public abstract sealed class FoodItem extends BaseEntity
         return weightGrams;
     }
 
-
     public double getCaloriesPer100g() {
         return caloriesPer100g;
     }
@@ -68,11 +83,6 @@ public abstract sealed class FoodItem extends BaseEntity
                 getName(), mealType, getTotalCalories(), getTotalProtein());
     }
 
-    /**
-     * Навмисно ЗАЛИШЕНО структурну рівність з ЛР6 (за значеннями полів),
-     * а не id-рівність з BaseEntity. Це означає, що FoodItem.equals()
-     * НЕ узгоджений з ідентичністю за id — дивись пояснення в README.
-     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
