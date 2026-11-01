@@ -1,12 +1,7 @@
-# Maven
 target/
-# Скомпільовані класи
 *.class
-# Файлова БД H2 (створюється при запуску)
 data/
-# Локальні налаштування з паролями — не комітити
 application-local.properties
-# IDE
 .idea/
 *.iml
 .vscode/
