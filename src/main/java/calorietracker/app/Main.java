@@ -29,7 +29,6 @@ import calorietracker.service.InMemoryCrudService;
 import calorietracker.service.InMemoryFruitProductService;
 
 public class Main {
-
     public static void main(String[] args) {
         MealLog log = new MealLog();
         log.addListener(new ConsoleMealObserver());
@@ -67,7 +66,8 @@ public class Main {
 
         demoFoodItemHierarchy();
         demoCrudService();
-        JdbcDemo.runAll(); 
+        JdbcDemo.runAll();
+        HibernateDemo.runAll();
     }
 
     private static void fillLog(Scanner scanner, MealLog log, int count) {
@@ -284,10 +284,11 @@ public class Main {
 
         fruitService.save(new FruitProduct(1, "Яблуко", 150, 52, 0.3, "перекус", 10));
         fruitService.save(new FruitProduct(2, "Банан", 120, 89, 1.1, "перекус", 12));
-        fruitService.save(new FruitProduct(3, "Яблуко", 180, 48, 0.4, "вечеря", 9)); // те саме ім'я, інший цукор
+        fruitService.save(new FruitProduct(3, "Яблуко", 180, 48, 0.4, "вечеря", 9));
 
         System.out.println("\n--- Оновлення наявної сутності (save з тим самим id) ---");
         System.out.println("Записів до повторного save: " + fruitService.findAll().size());
+
         fruitService.save(new FruitProduct(1, "Яблуко", 200, 55, 0.3, "перекус", 14));
         System.out.println("Записів після повторного save(id=1): " + fruitService.findAll().size());
 
@@ -304,8 +305,8 @@ public class Main {
         EntityUtils.printAll(fruitService.findAll());
 
         System.out.println("\n--- delete: успішний і неуспішний ---");
-        System.out.println("delete(2) -> " + fruitService.delete(2)); // є
-        System.out.println("delete(999) -> " + fruitService.delete(999)); // немає
+        System.out.println("delete(2) -> " + fruitService.delete(2));
+        System.out.println("delete(999) -> " + fruitService.delete(999));
 
         System.out.println("\n--- findById: неіснуючий id кидає EntityNotFoundException ---");
         try {

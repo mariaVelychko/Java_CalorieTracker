@@ -1,8 +1,20 @@
 package calorietracker.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
+
+@MappedSuperclass
 public abstract class BaseEntity {
-    private final long id;
-    private final String name;
+    @Id
+    @Column(name = "id")
+    private long id;
+
+    @Column(name = "name", nullable = false, length = 100)
+    private String name;
+
+    protected BaseEntity() {
+    }
 
     protected BaseEntity(long id, String name) {
         if (name == null || name.isBlank()) {
@@ -20,12 +32,11 @@ public abstract class BaseEntity {
         return name;
     }
 
-    /** Ідентичність за id: дві сутності з однаковим id вважаються "однією й тією самою". */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof BaseEntity other)) return false;
-        return id == other.id;
+        return id == other.getId();
     }
 
     @Override

@@ -1,6 +1,11 @@
 package calorietracker.model;
 
+import jakarta.persistence.MappedSuperclass;
+
+@MappedSuperclass
 public non-sealed abstract class MealProduct extends FoodItem {
+    protected MealProduct() {
+    }
 
     protected MealProduct(long id, String name, int weightGrams,
                           double caloriesPer100g,

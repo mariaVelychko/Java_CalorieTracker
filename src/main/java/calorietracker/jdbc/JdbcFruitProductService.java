@@ -11,7 +11,6 @@ import calorietracker.service.FruitProductService;
 
 public class JdbcFruitProductService extends AbstractJdbcCrudService<FruitProduct>
         implements FruitProductService {
-
     private static final String COLUMNS =
             "id, name, weight_grams, calories_per_100g, protein_per_100g, meal_type, "
                     + "sugar_grams, fresh, category_id";
@@ -46,6 +45,7 @@ public class JdbcFruitProductService extends AbstractJdbcCrudService<FruitProduc
     @Override
     protected FruitProduct mapRow(ResultSet rs) throws SQLException {
         long categoryId = rs.getLong("category_id");
+
         Long category = rs.wasNull() ? null : categoryId;
         return new FruitProduct(
                 rs.getLong("id"),
@@ -69,7 +69,7 @@ public class JdbcFruitProductService extends AbstractJdbcCrudService<FruitProduc
         ps.setDouble(6, f.getSugarGrams());
         ps.setBoolean(7, f.isFresh());
         if (f.getCategoryId() == null) {
-            ps.setNull(8, Types.BIGINT);     
+            ps.setNull(8, Types.BIGINT);
         } else {
             ps.setLong(8, f.getCategoryId());
         }
@@ -82,11 +82,10 @@ public class JdbcFruitProductService extends AbstractJdbcCrudService<FruitProduc
     }
 
     public List<FruitProduct> findByName(String name) {
-        return query(selectSql() + " WHERE name = ? ORDER BY id", ps -> ps.setString(1, name));
+        return query(selectSql() + " WHERE name = ? ORDER BY id", name);
     }
 
     public List<FruitProduct> findByCategory(long categoryId) {
-        return query(selectSql() + " WHERE category_id = ? ORDER BY name, id",
-                ps -> ps.setLong(1, categoryId));
+        return query(selectSql() + " WHERE category_id = ? ORDER BY name, id", categoryId);
     }
 }

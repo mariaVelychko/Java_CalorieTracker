@@ -1,7 +1,6 @@
 package calorietracker.advice;
 
 import java.util.Objects;
-// Simple Factory: відповідає вимозі окремого Factory-класу з параметром типу.
 public final class MealAdviceFactory {
     private MealAdviceFactory() { }
     public static MealAdviceStrategy create(AdviceType type) {

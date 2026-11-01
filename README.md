@@ -1,4 +1,103 @@
-# ЛР10. Maven і JDBC: сховище в реляційній БД
+# ЛР11. Hibernate ORM (Jakarta Persistence)
+
+Третя реалізація тих самих інтерфейсів (`CRUDService<T>`, `FruitProductService`): у пам'яті (ЛР7), JDBC (ЛР10) і
+**Hibernate** (ЛР11). Клієнтський код не змінюється: `JdbcDemo.demoSameClientCode(...)` викликається з Hibernate-сервісом
+так само, як з попередніми. Схема БД лишилась тією ж (`init.sql`), Hibernate її лише перевіряє (`validate`).
+JDBC-код з ЛР10 не змінювався. Тестів немає.
+
+## Що відображено
+
+| Клас | Таблиця | Примітка |
+| --- | --- | --- |
+| `BaseEntity` (`@MappedSuperclass`) | - | спільні `id`, `name` |
+| `FoodItem`, `MealProduct` (`@MappedSuperclass`) | - | вага, калорії, білок, прийом їжі |
+| `FruitProduct` (`@Entity`) | `fruit_product` | цукор, `fresh`, `@ManyToOne` до категорії |
+| `FoodCategory` (`@Entity`) | `food_category` | опис, `@OneToMany` фрукти |
+
+Обмеження колонок збігаються з `init.sql`: `nullable = false`, `length`, `precision`/`scale` (числа `NUMERIC(6,2)` мапляться
+через `@JdbcTypeCode(SqlTypes.NUMERIC)`). Є конструктор без параметрів (`protected`), класи не `final`.
+
+## Запуск
+
+```powershell
+mvn compile
+mvn -q dependency:build-classpath "-Dmdep.outputFile=cp.txt"
+java -cp "target\classes;$(Get-Content cp.txt)" calorietracker.app.HibernateDemo
+```
+(Просто `mvn compile exec:java "-Dexec.mainClass=calorietracker.app.HibernateDemo"` теж працює, але в консолі Windows кирилиця може бути
+«кракозябрами».) `Main` запускає все: ЛР3-9, потім демо JDBC і Hibernate. У виводі між рядками демо видно SQL, який генерує Hibernate
+(`show_sql`, `format_sql`).
+
+**З порожньої БД:** видали папку `data/` і запусти. `DBConnection` виконає `init.sql` (створить порожні таблиці), після чого
+`JpaUtil` створить `EntityManagerFactory`, і Hibernate перевірить схему.
+
+**Показ `validate`:** у `FruitProduct` зміни `@Column(name = "sugar_grams", ...)` на `name = "sugar_gram"` і запусти демо. Hibernate
+скаржиться приблизно так: `Schema-validation: missing column [sugar_gram] in table [fruit_product]`. Поверни назву назад.
+`validate` перевіряє наявність таблиць, колонок і сумісність типів, але **не** перевіряє довжину `VARCHAR` (`length`), тому зміна
+`length` помилки не дасть.
+
+## Конфігурація
+
+- `META-INF/persistence.xml`: один persistence-unit `calorie-unit`, `show_sql`, `format_sql`, `hbm2ddl.auto=validate`,
+  `generate_statistics=true` (лічильники для N+1). Лежить у `META-INF`, бо так його шукає JPA в classpath.
+- `pom.xml`: `hibernate-core 6.6.4.Final` (тягне транзитивно Jakarta Persistence API) і `slf4j-simple`; драйвер H2.
+- `JpaUtil` (Singleton): створює `EntityManagerFactory` один раз (дорогий об'єкт), а `EntityManager` відкриває на кожну операцію й
+  закриває. Транзакція в сервісах звичайна: `begin()`, потім `commit()`, а при винятку `rollback()` (методи `commit` і `rollback`
+  у `JpaUtil` лише скорочують запис). Читання (`find`, запити) йде без транзакції.
+
+## Сервіси
+
+- `HibernateCrudService<T extends BaseEntity>`: `findById` (кидає `EntityNotFoundException`, якщо `find` повернув `null`),
+  `save` (`em.merge`: вставляє нову сутність або оновлює наявну за id), `delete` (повертає `boolean`), `findAllSortedByName` (JPQL).
+- `HibernateFruitProductService implements FruitProductService`: `findAllSortedByNameAndBySugar`, `findByCategory`, `findPage`.
+- `HibernateCategoryService`: `findByIdWithFruits` (`JOIN FETCH`), підрахунки для демонстрації N+1.
+- Запити JPQL з іменованими параметрами (`:categoryId`), без склеювання рядків; сторінки через `setFirstResult`/`setMaxResults`.
+
+**Ключ.** `@GeneratedValue` не використано: `id` задається в конструкторі сутності (як у ЛР7 і ЛР10), а в `init.sql` колонка `id`
+не автоінкрементна. Тому Hibernate користується призначеними ідентифікаторами, а `save` через `merge` працює як «додати або оновити».
+
+## Зв'язок «категорія - фрукти»
+
+- **Власник зв'язку: `FruitProduct`** (`@ManyToOne` + `@JoinColumn(name = "category_id")`), бо саме в його таблиці лежить зовнішній
+  ключ. `FoodCategory.fruits` - зворотний бік: `@OneToMany(mappedBy = "category")`, окремої колонки не створює.
+  Змінює БД лише власник: після `category.removeFruit(f)` треба зберегти саме `f`.
+- Допоміжні методи `addFruit` / `removeFruit` виставляють обидві сторони зв'язку, інакше об'єкти розійдуться
+  (книга додана в колекцію, але `category` в неї `null`, і в БД нічого не запишеться).
+- **LAZY** для обох сторін: `@OneToMany` за замовчуванням ледачий, а `@ManyToOne` за замовчуванням EAGER, тому там вказано
+  `fetch = LAZY` явно. Так не вантажаться зайві дані.
+- **cascade = {PERSIST, MERGE}**: збереження категорії зберігає її нові фрукти. `REMOVE` свідомо немає: у ЛР10 вибрано
+  `ON DELETE RESTRICT`, видалення категорії з фруктами має бути помилкою, а не мовчки знищувати дані.
+- **orphanRemoval не вмикаємо**: фрукт без категорії допустимий (`category_id` може бути `NULL`), тож відв'язаний фрукт не має
+  зникати з БД.
+- У `toString()` категорії фрукти не виводяться: двоспрямований зв'язок викликав би нескінченну рекурсію й змусив би завантажити
+  ледачу колекцію.
+
+## equals і hashCode
+
+`BaseEntity` порівнює за `id` (`getId()`, щоб працювало й через Hibernate-проксі). Це безпечно, бо `id` відомий ще до збереження.
+`FoodItem` лишає структурну рівність з ЛР6 (за значеннями полів). Фрукти в категорії зберігаються в `List`, а не в `Set`, тож від
+`hashCode` нічого не залежить.
+
+## Дві типові проблеми
+
+**LazyInitializationException.** `categories.findById(2)` повертає категорію, а `EntityManager` уже закритий. Звернення до
+`getFruits().size()` дає `LazyInitializationException`. Виправлення: `findByIdWithFruits` (`left join fetch c.fruits`).
+Переводити все на EAGER не варто: це довантажує дані, яких не просили, і провокує N+1.
+
+**N+1.** Цикл `for (c : categories) c.getFruits().size()`: один запит за категоріями плюс по одному запиту на кожну категорію.
+Виправлення: `select distinct c from FoodCategory c left join fetch c.fruits`.
+
+| Варіант | SQL-запитів (2 категорії в демо) |
+| --- | --- |
+| До: цикл по ледачих колекціях | 1 + 2 = 3 |
+| Після: `JOIN FETCH` | 1 |
+
+(Точні числа демо друкує за лічильником Hibernate `Statistics`; вони мають збігатися з таблицею.) `JOIN FETCH` разом з
+`setMaxResults` Hibernate виконує в пам'яті (попередження HHH000104): пагінація застосовується вже після завантаження всіх рядків.
+
+---
+
+# Попередня робота: ЛР10. Maven і JDBC
 
 Продовження ЛР1-9. Сховище в пам'яті з ЛР7 (`InMemoryCrudService`) замінено на сховище в БД
 **без зміни інтерфейсів**: `JdbcFruitProductService` реалізує той самий `FruitProductService`,
